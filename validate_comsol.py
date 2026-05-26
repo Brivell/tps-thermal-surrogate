@@ -20,15 +20,20 @@ Fichiers requis :
   train_surrogate_gp.py  (pour le benchmark GP)
 """
 
+import sys
+import os
+sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_absolute_error
 from multiprocessing import Pool, cpu_count
 import pickle
 import time
-import os
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+os.chdir(_ROOT)
+sys.path.insert(0, os.path.join(_ROOT, "Method function"))
 
 # Paramètres de simulation — identiques à COMSOL pour que la comparaison soit juste
 SIGMA    = 5.67e-8
@@ -267,7 +272,7 @@ def benchmark_gp(cas_test=None):
     print(f"{'='*60}")
     print("  (comparaison cohérente : les deux prédisent T_max sur 1800s)\n")
 
-    with open('surrogate_gp.pkl', 'rb') as f:
+    with open('Models/surrogate_gp.pkl', 'rb') as f:
         gp, scaler_X, scaler_y = pickle.load(f)
 
     if cas_test is None:
@@ -337,8 +342,8 @@ if __name__ == "__main__":
 
     # Charger les données COMSOL
     print("\n[1/4] Données COMSOL...")
-    k_vals, T_comsol_k = load_comsol_txt('comsol_variation_k.txt')
-    q_vals, T_comsol_q = load_comsol_txt('comsol_variation_qmax.txt')
+    k_vals, T_comsol_k = load_comsol_txt('Validation/comsol_variation_k.txt')
+    q_vals, T_comsol_q = load_comsol_txt('Validation/comsol_variation_qmax.txt')
 
     args_k = [(k,   L, Q_MAX, T_TARGET) for k in k_vals]
     args_q = [(0.5, L, q,     T_TARGET) for q in q_vals]

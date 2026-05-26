@@ -19,6 +19,10 @@ Usage :
     python train_surrogate_scalar.py
 """
 
+import sys
+import os
+sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 import pickle
 import time
@@ -27,8 +31,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error
 
-DATASET_FILE = 'dataset_TPS.npz'
-MODEL_FILE   = 'surrogate_tmax_scalar.pkl'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+sys.path.insert(0, os.path.join(ROOT, "Method function"))
+
+DATASET_FILE      = 'dataset_TPS.npz'
+MODEL_FILE        = os.path.join('Models', 'surrogate_tmax_scalar.pkl')
+RUN_FEM_BENCHMARK = False
+os.makedirs('Models', exist_ok=True)   # mettre True pour activer le benchmark FEM (~5 min)
 
 # Chargement du dataset
 print("Chargement dataset...")
@@ -116,43 +126,46 @@ print(f"\n  Modèle sauvegardé : {MODEL_FILE}")
 # Benchmark vs FEM
 # =============================================================================
 
-print(f"\nBenchmark MLP scalaire vs FEM\n")
-from tps_fct_fem import simulation_principale
+if RUN_FEM_BENCHMARK:
+    print(f"\nBenchmark MLP scalaire vs FEM\n")
+    from tps_fct_fem import simulation_principale
 
-cas_test = [
-    (0.3,  0.06, 40000, "k très faible"),
-    (0.5,  0.1,  50000, "k faible      "),
-    (2.0,  0.08, 60000, "k moyen       "),
-    (8.0,  0.1,  70000, "k élevé       "),
-    (14.0, 0.05, 35000, "k très élevé  "),
-]
+    cas_test = [
+        (0.3,  0.06, 40000, "k très faible"),
+        (0.5,  0.1,  50000, "k faible      "),
+        (2.0,  0.08, 60000, "k moyen       "),
+        (8.0,  0.1,  70000, "k élevé       "),
+        (14.0, 0.05, 35000, "k très élevé  "),
+    ]
 
-print(f"  {'Cas':<16} | {'FEM':>8} | {'MLP':>8} | {'Erreur':>7} | {'Speedup':>9}")
-print("  " + "-"*58)
+    print(f"  {'Cas':<16} | {'FEM':>8} | {'MLP':>8} | {'Erreur':>7} | {'Speedup':>9}")
+    print("  " + "-"*58)
 
-for k, L, q_max, nom in cas_test:
-    class prm:
-        rho=1800; cp=800; k_therm=k; epsilon=0.85
+    for k, L, q_max, nom in cas_test:
+        class prm:
+            rho=1800; cp=800; k_therm=k; epsilon=0.85
 
-    t0 = time.time()
-    Res = simulation_principale(
-        [0,L],[0,L], 21, 21, 10.0, 1800.0, [],
-        293.15, 293.15, 1200.0, q_max, 5.67e-8, prm,
-        save_all=True, verbose=False
-    )
-    t_fem = time.time() - t0
-    T_fem = np.max(Res["T_field_complet"])
+        t0 = time.time()
+        Res = simulation_principale(
+            [0,L],[0,L], 21, 21, 10.0, 1800.0, [],
+            293.15, 293.15, 1200.0, q_max, 5.67e-8, prm,
+            save_all=True, verbose=False
+        )
+        t_fem = time.time() - t0
+        T_fem = np.max(Res["T_field_complet"])
 
-    t0 = time.time()
-    X_new  = np.array([[np.log(k), L, q_max]])
-    T_surr = np.exp(scaler_y.inverse_transform(
-        model.predict(scaler_X.transform(X_new)).reshape(-1,1)).ravel()[0])
-    t_ml   = time.time() - t0
+        t0 = time.time()
+        X_new  = np.array([[np.log(k), L, q_max]])
+        T_surr = np.exp(scaler_y.inverse_transform(
+            model.predict(scaler_X.transform(X_new)).reshape(-1,1)).ravel()[0])
+        t_ml   = time.time() - t0
 
-    err     = abs(T_surr - T_fem) / T_fem * 100
-    speedup = t_fem / t_ml
-    print(f"  {nom} | {T_fem:>6.0f}°C | {T_surr:>6.0f}°C | "
-          f"{err:>6.2f}% | {speedup:>7.0f}×")
+        err     = abs(T_surr - T_fem) / T_fem * 100
+        speedup = t_fem / t_ml
+        print(f"  {nom} | {T_fem:>6.0f}°C | {T_surr:>6.0f}°C | "
+              f"{err:>6.2f}% | {speedup:>7.0f}×")
+else:
+    print("\n  Benchmark FEM ignoré (RUN_FEM_BENCHMARK=False).")
 
 print(f"\nUtilisation :")
 print(f"  with open('surrogate_tmax_scalar.pkl', 'rb') as f:")

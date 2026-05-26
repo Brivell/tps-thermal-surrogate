@@ -6,6 +6,10 @@ Input  : (k, L, q_max)
 Output : T_field (181, 21, 21)
 """
 
+import sys
+import os
+sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPRegressor
@@ -14,7 +18,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error
 import pickle
 import time
-import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+sys.path.insert(0, os.path.join(ROOT, "Method function"))
+
 from tps_fct_fem import simulation_principale
 
 # ── Constantes ───────────────────────────────────────────────────────
@@ -22,7 +30,8 @@ DT           = 10.0
 T_FINAL      = 1800.0
 N_STEPS      = int(T_FINAL / DT)          # 180
 FIELD_SHAPE  = (N_STEPS + 1, 21, 21)      # (181, 21, 21)
-CACHE_DIR    = 'sim_cache'                # un .npy par simulation
+CACHE_DIR    = 'sim_cache'
+os.makedirs('Models', exist_ok=True)
 
 
 def run_one_simulation(args):
@@ -115,7 +124,7 @@ def _assemble_and_save(n_samples, X, save_file):
 
 
 def train_surrogate(dataset_file='dataset_TPS.npz',
-                    save_model='surrogate_model.pkl'):
+                    save_model=os.path.join('Models', 'surrogate_model.pkl')):
 
     print("Chargement dataset...")
     data = np.load(dataset_file)
@@ -175,7 +184,7 @@ def train_surrogate(dataset_file='dataset_TPS.npz',
     return model, scaler_X, scaler_y, field_shape
 
 
-def predict_champ_complet(k, L, q_max, model_file='surrogate_model.pkl'):
+def predict_champ_complet(k, L, q_max, model_file=os.path.join('Models', 'surrogate_model.pkl')):
     with open(model_file, 'rb') as f:
         data = pickle.load(f)
 
@@ -240,6 +249,8 @@ def benchmark_speed():
     print(f"  Erreur  : {error:.2f}°C ({error/T_max_fem*100:.2f}%)")
 
 
+RUN_FEM_BENCHMARK = False   # mettre True pour activer le benchmark FEM (~2 min)
+
 if __name__ == "__main__":
     print("=" * 70)
     print("ML SURROGATE MODEL POUR TPS")
@@ -251,8 +262,13 @@ if __name__ == "__main__":
     # print("\n[2/3] Entrainement modele...")
     # train_surrogate()
 
-    print("\n[3/3] Benchmark vitesse...")
-    benchmark_speed()
+    if RUN_FEM_BENCHMARK:
+        print("\n[3/3] Benchmark vitesse...")
+        benchmark_speed()
+    else:
+        print("\n[3/3] Test prédiction rapide (sans FEM)...")
+        T_field, temps = predict_champ_complet(k=0.8, L=0.1, q_max=50000)
+        print(f"  T_max prédit : {T_field.max():.1f}°C  |  shape : {T_field.shape}")
 
     print("\n" + "=" * 70)
     print("ML SURROGATE MODEL TERMINE")

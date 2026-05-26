@@ -1,4 +1,10 @@
 import streamlit as st
+import os, sys
+
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+os.chdir(_ROOT)
 
 st.set_page_config(
     page_title="TPS Thermal Surrogate",
@@ -8,7 +14,7 @@ st.set_page_config(
 )
 
 # Load global CSS
-with open("assets/style.css") as f:
+with open(os.path.join(_ROOT, "assets", "style.css")) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 st.sidebar.markdown("""
@@ -26,12 +32,12 @@ st.sidebar.markdown("""
 st.sidebar.markdown("---")
 
 pages = {
-    "🏠  Home": "pages/1_home.py",
-    "⚙️  How It Works": "pages/2_how_it_works.py",
-    "📊  Benchmarks": "pages/3_benchmarks.py",
-    "⚡  Live Demo": "pages/4_live_demo.py",
-    "🗺️  Design Space": "pages/5_design_space.py",
-    "🎯  Optimization": "pages/6_optimization.py",
+    "🏠  Home": os.path.join(_ROOT, "pages", "1_home.py"),
+    "⚙️  How It Works": os.path.join(_ROOT, "pages", "2_how_it_works.py"),
+    "📊  Benchmarks": os.path.join(_ROOT, "pages", "3_benchmarks.py"),
+    "⚡  Live Demo": os.path.join(_ROOT, "pages", "4_live_demo.py"),
+    "🗺️  Design Space": os.path.join(_ROOT, "pages", "5_design_space.py"),
+    "🎯  Optimization": os.path.join(_ROOT, "pages", "6_optimization.py"),
 }
 
 page = st.sidebar.radio("Navigate", list(pages.keys()), label_visibility="collapsed")

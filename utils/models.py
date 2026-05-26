@@ -1,39 +1,30 @@
 import pickle
 import numpy as np
+import os
 import streamlit as st
 from utils.physics import FIELD_SHAPE, TIMES
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 @st.cache_resource
 def load_gp():
-    for path in ("Models/surrogate_gp.pkl", "surrogate_gp.pkl"):
-        try:
-            with open(path, "rb") as f:
-                return pickle.load(f)
-        except FileNotFoundError:
-            continue
-    raise FileNotFoundError("surrogate_gp.pkl not found in Models/ or root")
+    path = os.path.join(_ROOT, "Models", "surrogate_gp.pkl")
+    with open(path, "rb") as f:
+        return pickle.load(f)
 
 
 @st.cache_resource
 def load_mlp():
-    for path in ("Models/surrogate_model.pkl", "surrogate_model.pkl"):
-        try:
-            with open(path, "rb") as f:
-                return pickle.load(f)
-        except FileNotFoundError:
-            continue
-    raise FileNotFoundError("surrogate_model.pkl not found in Models/ or root")
+    path = os.path.join(_ROOT, "Models", "surrogate_model.pkl")
+    with open(path, "rb") as f:
+        return pickle.load(f)
 
 
 @st.cache_resource
 def load_dataset():
-    for path in ("dataset_TPS.npz",):
-        try:
-            return np.load(path, allow_pickle=True)
-        except FileNotFoundError:
-            continue
-    raise FileNotFoundError("dataset_TPS.npz not found")
+    path = os.path.join(_ROOT, "dataset_TPS.npz")
+    return np.load(path, allow_pickle=True)
 
 
 def predict_tmax_gp(k, L, q_max):

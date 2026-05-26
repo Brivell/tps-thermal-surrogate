@@ -16,6 +16,10 @@ Usage :
     python train_surrogate_gp.py
 """
 
+import sys
+import os
+sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -27,8 +31,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error
 
-DATASET_FILE = 'dataset_TPS.npz'
-MODEL_GP     = 'surrogate_gp.pkl'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+sys.path.insert(0, os.path.join(ROOT, "Method function"))
+
+from tps_fct_fem import simulation_principale
+
+DATASET_FILE       = 'dataset_TPS.npz'
+MODEL_GP           = os.path.join('Models', 'surrogate_gp.pkl')
+RUN_FEM_BENCHMARK  = False
+os.makedirs('Models', exist_ok=True)   # mettre True pour activer le benchmark FEM (~5 min)
 
 # Chargement et préparation du dataset
 print("Chargement dataset...")
@@ -159,57 +171,12 @@ print(f"{'Erreur moy (%)':<20} {err_gp.mean():>10.2f} {err_mlp.mean():>10.2f}")
 print(f"{'Erreur max (%)':<20} {err_gp.max():>10.2f} {err_mlp.max():>10.2f}")
 print(f"{'Points < 2%':<20} {(err_gp<2).sum():>9}/{len(err_gp)} "
       f"{(err_mlp<2).sum():>9}/{len(err_mlp)}")
-print(f"{'Incertitude':<20} {'✅ Oui':>10} {'❌ Non':>10}")
+print(f"{'Incertitude':<20} {'Oui':>10} {'Non':>10}")
 print(f"{'Temps entraîn.':<20} {t_gp:>9.1f}s {t_mlp:>9.1f}s")
 
 
 # =============================================================================
-# Benchmark vs FEM sur cas représentatifs
-# =============================================================================
-
-print(f"\nBenchmark GP vs FEM — T_max global\n")
-from tps_fct_fem import simulation_principale
-
-cas_test = [
-    (0.3,  0.06, 40000, "k très faible"),
-    (0.5,  0.1,  50000, "k faible      "),
-    (2.0,  0.08, 60000, "k moyen       "),
-    (8.0,  0.1,  70000, "k élevé       "),
-    (14.0, 0.05, 35000, "k très élevé  "),
-]
-
-print(f"  {'Cas':<16} | {'FEM':>8} | {'GP':>8} | {'±σ':>6} | {'Erreur':>7} | {'Speedup':>9}")
-print("  " + "-"*65)
-
-for k, L, q_max, nom in cas_test:
-    class prm:
-        rho=1800; cp=800; k_therm=k; epsilon=0.85
-
-    t0 = time.time()
-    Res = simulation_principale(
-        [0,L],[0,L], 21, 21, 10.0, 1800.0, [],
-        293.15, 293.15, 1200.0, q_max, 5.67e-8, prm,
-        save_all=True, verbose=False
-    )
-    t_fem = time.time() - t0
-    T_fem = np.max(Res["T_field_complet"])
-
-    t0 = time.time()
-    X_new    = scaler_X.transform([[np.log(k), L, q_max]])
-    y_s, std_s = gp.predict(X_new, return_std=True)
-    y_real   = scaler_y.inverse_transform(y_s.reshape(-1,1)).ravel()[0]
-    T_gp     = np.exp(y_real)
-    T_std    = T_gp * std_s[0] * scaler_y.scale_[0]
-    t_ml     = time.time() - t0
-
-    err     = abs(T_gp - T_fem) / T_fem * 100
-    speedup = t_fem / t_ml
-    print(f"  {nom} | {T_fem:>6.0f}°C | {T_gp:>6.0f}°C | "
-          f"±{T_std:>3.0f}°C | {err:>6.2f}% | {speedup:>7.0f}×")
-
-
-# =============================================================================
-# Graphiques
+# Graphiques (avant le benchmark FEM pour un accès rapide)
 # =============================================================================
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -246,8 +213,54 @@ ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('benchmark_gp_vs_mlp.png', dpi=300, bbox_inches='tight')
-print(f"\n  Figure : benchmark_gp_vs_mlp.png")
-plt.show()
+print(f"\n  Figure sauvegardée : benchmark_gp_vs_mlp.png")
+plt.close()
+
+# =============================================================================
+# Benchmark vs FEM sur cas représentatifs
+# =============================================================================
+
+if RUN_FEM_BENCHMARK:
+    print(f"\nBenchmark GP vs FEM — T_max global\n")
+
+    cas_test = [
+        (0.3,  0.06, 40000, "k très faible"),
+        (0.5,  0.1,  50000, "k faible      "),
+        (2.0,  0.08, 60000, "k moyen       "),
+        (8.0,  0.1,  70000, "k élevé       "),
+        (14.0, 0.05, 35000, "k très élevé  "),
+    ]
+
+    print(f"  {'Cas':<16} | {'FEM':>8} | {'GP':>8} | {'±σ':>6} | {'Erreur':>7} | {'Speedup':>9}")
+    print("  " + "-"*65)
+
+    for k, L, q_max, nom in cas_test:
+        class prm:
+            rho=1800; cp=800; k_therm=k; epsilon=0.85
+
+        t0 = time.time()
+        Res = simulation_principale(
+            [0,L],[0,L], 21, 21, 10.0, 1800.0, [],
+            293.15, 293.15, 1200.0, q_max, 5.67e-8, prm,
+            save_all=True, verbose=False
+        )
+        t_fem = time.time() - t0
+        T_fem = np.max(Res["T_field_complet"])
+
+        t0 = time.time()
+        X_new    = scaler_X.transform([[np.log(k), L, q_max]])
+        y_s, std_s = gp.predict(X_new, return_std=True)
+        y_real   = scaler_y.inverse_transform(y_s.reshape(-1,1)).ravel()[0]
+        T_gp     = np.exp(y_real)
+        T_std    = T_gp * std_s[0] * scaler_y.scale_[0]
+        t_ml     = time.time() - t0
+
+        err     = abs(T_gp - T_fem) / T_fem * 100
+        speedup = t_fem / t_ml
+        print(f"  {nom} | {T_fem:>6.0f}°C | {T_gp:>6.0f}°C | "
+              f"±{T_std:>3.0f}°C | {err:>6.2f}% | {speedup:>7.0f}×")
+else:
+    print("\n  Benchmark FEM ignoré (RUN_FEM_BENCHMARK=False).")
 
 print("\nUtilisation du GP :")
 print("  with open('surrogate_gp.pkl', 'rb') as f:")
