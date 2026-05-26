@@ -17,6 +17,15 @@ env/
 # Large model file (253 MB — download from Releases)
 Models/surrogate_model.pkl
 
+# Generated plots at root (saved to images/ by scripts)
+/*.png
+
+# Training output logs
+train_all_output.txt
+scalar_output.txt
+ml_output.txt
+sim_cache/
+
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb

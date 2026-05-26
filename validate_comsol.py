@@ -34,6 +34,7 @@ import time
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 os.chdir(_ROOT)
 sys.path.insert(0, os.path.join(_ROOT, "Method function"))
+os.makedirs('images', exist_ok=True)
 
 # Paramètres de simulation — identiques à COMSOL pour que la comparaison soit juste
 SIGMA    = 5.67e-8
@@ -199,7 +200,7 @@ def validate(param_vals, T_comsol, T_fdm, T_fem,
     ax.grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
-    fname = f'validate_comsol_{label}.png'
+    fname = os.path.join('images', f'validate_comsol_{label}.png')
     plt.savefig(fname, dpi=300, bbox_inches='tight')
     print(f"\n  Figure sauvegardée : {fname}")
     plt.show()
@@ -253,8 +254,8 @@ def plot_summary(results_k, results_q):
                  f'{val:.1f}°C', ha='center', va='bottom', fontsize=9)
 
     plt.tight_layout()
-    plt.savefig('validate_comsol_summary.png', dpi=300, bbox_inches='tight')
-    print("  Figure sauvegardée : validate_comsol_summary.png")
+    plt.savefig(os.path.join('images', 'validate_comsol_summary.png'), dpi=300, bbox_inches='tight')
+    print("  Figure sauvegardée : images/validate_comsol_summary.png")
     plt.show()
 
 

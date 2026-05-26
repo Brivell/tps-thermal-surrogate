@@ -40,7 +40,8 @@ from tps_fct_fem import simulation_principale
 DATASET_FILE       = 'dataset_TPS.npz'
 MODEL_GP           = os.path.join('Models', 'surrogate_gp.pkl')
 RUN_FEM_BENCHMARK  = False
-os.makedirs('Models', exist_ok=True)   # mettre True pour activer le benchmark FEM (~5 min)
+os.makedirs('Models', exist_ok=True)
+os.makedirs('images', exist_ok=True)   # mettre True pour activer le benchmark FEM (~5 min)
 
 # Chargement et préparation du dataset
 print("Chargement dataset...")
@@ -212,8 +213,8 @@ ax.legend(fontsize=10)
 ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig('benchmark_gp_vs_mlp.png', dpi=300, bbox_inches='tight')
-print(f"\n  Figure sauvegardée : benchmark_gp_vs_mlp.png")
+plt.savefig(os.path.join('images', 'benchmark_gp_vs_mlp.png'), dpi=300, bbox_inches='tight')
+print(f"\n  Figure sauvegardée : images/benchmark_gp_vs_mlp.png")
 plt.close()
 
 # =============================================================================
