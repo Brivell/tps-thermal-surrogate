@@ -5,7 +5,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red.svg)](https://streamlit.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> A high-fidelity surrogate model for thermal protection system (TPS) simulation during spacecraft atmospheric reentry. Combines FDM and FEM numerical solvers with Gaussian Process and MLP surrogate models — achieving **R²=1.000** and **0.03% error** at **100,000× speedup** over full FEM simulation.
+> A high-fidelity surrogate model for thermal protection system (TPS) simulation during spacecraft atmospheric reentry. Combines FDM and FEM numerical solvers with Gaussian Process and MLP surrogate models — achieving **R²=0.9999** and **0.03% error** at **100,000× speedup** over full FEM simulation.
 
 ---
 
@@ -162,7 +162,7 @@ Matérn ν=2.5 kernel — consistent with twice-differentiable heat equation sol
 
 | Metric | MLP Scalar | GP |
 |--------|-----------|-----|
-| R² test | 0.9995 | **1.0000** |
+| R² test | 0.9995 | **0.9999** |
 | MAE | 4.7°C | **0.31°C** |
 | Error mean | 0.87% | **0.03%** |
 | Error max | 2.83% | **0.63%** |
